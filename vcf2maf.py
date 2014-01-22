@@ -15,7 +15,6 @@ mafFields = ['Hugo_Symbol', 'Entrez_Gene_Id', 'Center', 'NCBI_Build',
     'Tumor_Validation_Allele2', 'Match_Norm_Validation_Allele1', 'Match_Norm_Validation_Allele2', 
     'Verification_Status', 'Validation_Status', 'Mutation_Status', 'Sequencing_Phase', 'Sequence_Source', 
     'Validation_Method', 'Score', 'BAM_File', 'Sequencer', 'Tumor_Sample_UUID', 'Matched_Norm_Sample_UUID']
-#TODO add annotation info
 
 # define variant status for MAF    
 variantStatus = {0 : 'Wildtype', 1: 'Germline', 2 : 'Somatic', 3 : 'LOH', 4 : 'post-transcriptional modification', 5 : 'Unknown' }
@@ -47,9 +46,16 @@ def main():
     tumorBarcode = normalBarcode = tumorUuid = normalUuid = platform =  '.'
     tumorAllele1 = tumorAllele2 = normalAllele1 = normalAllele2 = '.'
     
-    vcfFile = open(args.vcf, 'r')  
+    # open files
+    try:
+        vcfFile = open(args.vcf, 'r')
+    except IOError:
+        print "Error: input vcf does not exist."
+        
     vcfReader = vcf.Reader(vcfFile)
     mafFile = open(args.maf, 'w')
+    mafFile.write('\t'.join(mafFields))
+    mafFile.write('\n')
     
     # vcf metadata = ordered dict
     # metadata['center'] = list
@@ -74,71 +80,77 @@ def main():
             tumorId = sample['ID']
     
     # read vcf records
-    for vcfRow in vcfReader:
-        chrom = vcfRow.CHROM
-        start = str(vcfRow.POS)
-        end = str(vcfRow.POS)
+    try:
+        i=0
+        for vcfRow in vcfReader:
+            i += 1
+            chrom = vcfRow.CHROM
+            start = str(vcfRow.POS)
+            end = str(vcfRow.POS)
         
-        # variant type (SNP, DEL, DNP etc)
-        # TODO allow all variant types
-        varType = vcfRow.INFO['VT']
-        if varType != 'SNP':
-            continue
+            # variant type (SNP, DEL, DNP etc)
+            # TODO allow all variant types
+            varType = vcfRow.INFO['VT']
+            if varType != 'SNP':
+                continue
         
-        # reference, variant, tumor, and normal alleles
-        ref = vcfRow.REF
-        var = str(vcfRow.ALT[0])
-        normalAllele1, normalAllele2 = toMafAlleles(vcfRow.genotype(normalId)['GT'], ref, var)
-        tumorAllele1, tumorAllele2 = toMafAlleles(vcfRow.genotype(tumorId)['GT'], ref, var)
+            # reference, variant, tumor, and normal alleles
+            ref = vcfRow.REF
+            var = str(vcfRow.ALT[0])
+            normalAllele1, normalAllele2 = toMafAlleles(vcfRow.genotype(normalId)['GT'], ref, var)
+            tumorAllele1, tumorAllele2 = toMafAlleles(vcfRow.genotype(tumorId)['GT'], ref, var)
        
-        # Mutation Status (Somatic/Gemrline/LOH/Wildtype)
-        mutationStatus = variantStatus[vcfRow.genotype(tumorId)['SS']]
+            # Mutation Status (Somatic/Gemrline/LOH/Wildtype)
+            mutationStatus = variantStatus[vcfRow.genotype(tumorId)['SS']]
         
-        # write MAF
-        mafRow = []
-        mafRow.append('')               #hugo_symbol
-        mafRow.append('')               #entrez_gene_id
-        mafRow.append(center)
-        mafRow.append('')               #mcbi_build
-        mafRow.append(chrom)
-        mafRow.append(start)
-        mafRow.append(end)
-        mafRow.append('+')
-        mafRow.append('')               #variant_classification
-        mafRow.append(varType)
-        mafRow.append(ref)
-        mafRow.append(tumorAllele1)
-        mafRow.append(tumorAllele2)
-        mafRow.append('')               #dbsnp
-        mafRow.append('')               #dbsnp_valstat
-        mafRow.append(tumorBarcode)
-        mafRow.append(normalBarcode)
-        mafRow.append(normalAllele1)
-        mafRow.append(normalAllele2)
-        mafRow.append('')               #validaiton alleles
-        mafRow.append('')
-        mafRow.append('')
-        mafRow.append('')
-        mafRow.append('')
-        mafRow.append('')               #validation_status
-        mafRow.append(mutationStatus)
-        mafRow.append('')
-        mafRow.append('')
-        mafRow.append('')
-        mafRow.append('')
-        mafRow.append('')
-        mafRow.append(platform)
-        mafRow.append('')
-        mafRow.append('')
+            # write MAF
+            mafRow = []
+            mafRow.append('')               #hugo_symbol
+            mafRow.append('')               #entrez_gene_id
+            mafRow.append(center)
+            mafRow.append('')               #mcbi_build
+            mafRow.append(chrom)
+            mafRow.append(start)
+            mafRow.append(end)
+            mafRow.append('+')
+            mafRow.append('')               #variant_classification
+            mafRow.append(varType)
+            mafRow.append(ref)
+            mafRow.append(tumorAllele1)
+            mafRow.append(tumorAllele2)
+            mafRow.append('')               #dbsnp
+            mafRow.append('')               #dbsnp_valstat
+            mafRow.append(tumorBarcode)
+            mafRow.append(normalBarcode)
+            mafRow.append(normalAllele1)
+            mafRow.append(normalAllele2)
+            mafRow.append('')               #validaiton alleles
+            mafRow.append('')
+            mafRow.append('')
+            mafRow.append('')
+            mafRow.append('')
+            mafRow.append('')               #validation_status
+            mafRow.append(mutationStatus)
+            mafRow.append('')
+            mafRow.append('')
+            mafRow.append('')
+            mafRow.append('')
+            mafRow.append('')
+            mafRow.append(platform)
+            mafRow.append('')
+            mafRow.append('')
         
-        for field in mafRow:
-            #print field, type(field)
-            mafFile.write(field)
-            mafFile.write('\t')
-        mafFile.write('\n')
-    
+            for field in mafRow:
+                #print field, type(field)
+                mafFile.write(field)
+                mafFile.write('\t')
+            mafFile.write('\n')
+    except Exception:
+        print 'Error in vcf line %d' % i
+        
     vcfFile.close()
     mafFile.close()
+    
 if __name__ == '__main__':
     main()
     
