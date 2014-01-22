@@ -139,11 +139,8 @@ def main():
             mafRow.append(platform)
             mafRow.append('')
             mafRow.append('')
-        
-            for field in mafRow:
-                #print field, type(field)
-                mafFile.write(field)
-                mafFile.write('\t')
+            
+            mafFile.write('\t'.join(mafRow))
             mafFile.write('\n')
     except Exception:
         print 'Error in vcf line %d' % i
